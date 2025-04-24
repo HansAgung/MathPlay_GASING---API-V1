@@ -1,0 +1,12 @@
+POST http://127.0.0.1:8000/api/v1/register
+Content-Type: multipart/form-data
+Accept: application/json
+
+{
+  "name": "Atalya Saragih",
+  "email": "@gmail.com",
+  "password": "hansagg11",
+  "password_confirmation": "hansagg11"
+}
+
+
