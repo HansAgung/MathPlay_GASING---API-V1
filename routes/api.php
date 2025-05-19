@@ -1,10 +1,20 @@
 <?php
 
+//Address untuk fix-produk
 use App\Http\Controllers\Api\v1\Auth\AuthUserController;
 use App\Http\Controllers\Api\v1\Auth\AuthAdminController;
 use App\Http\Controllers\Api\v1\BadgesController;
 use Illuminate\Support\Facades\Route;
 
+//Address untuk test
+use App\Http\Controllers\Api\test\AuthMockController;
+use App\Http\Controllers\Api\test\QuestMockController;
+use App\Http\Controllers\Api\test\LeaderboardMockController;  
+use App\Http\Controllers\Api\test\OptionTestController;
+use App\Http\Controllers\Api\test\SubjectMatterController;
+use App\Http\Controllers\Api\test\InputTestController;
+
+//Set route untuk fix-produk 
 Route::prefix('v1')->group(function () {
     Route::post('register', [AuthUserController::class, 'register']);
     Route::post('login', [AuthUserController::class, 'login']);
@@ -36,4 +46,11 @@ Route::prefix('v1')->group(function () {
     });
 });
 
+//Set route untuk test
+Route::get('/mock-login', [AuthMockController::class, 'mockLogin']);
+Route::get('/mock/quest', [QuestMockController::class, 'QuestMock']);
+Route::get('/mock/leaderboard', [LeaderboardMockController::class, 'leaderboard']);
+Route::get('/mock/quest/optionTest', [OptionTestController::class, 'getOptionTest']);
+Route::get('/mock/quest/subject-matter',[SubjectMatterController::class, 'getVideoPembelajaran']);
+Route::get('/mock/quest/inputTest',[InputTestController::class, 'getInputTest']);
 
