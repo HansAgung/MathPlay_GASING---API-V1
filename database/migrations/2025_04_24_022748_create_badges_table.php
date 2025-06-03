@@ -9,7 +9,7 @@ class CreateBadgesTable extends Migration
     public function up(): void
     {
         Schema::create('badges', function (Blueprint $table) {
-            $table->id('id_badges'); // Primary key custom
+            $table->id('id_badges');
             $table->string('title_badges');
             $table->string('badges_img')->nullable();
             $table->text('badges_desc')->nullable();

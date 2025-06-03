@@ -63,7 +63,7 @@ class OptionTestController extends Controller
                 "id_quiz_option" => 1,
                 "id_quest_lesson" => 1,
                 "title_question" => "Quiz Penjumlahan Dasar",
-                "set_time" => 10,
+                "set_time" => 60,
                 "question" => $questions,
                 "answer" => $answers
             ]

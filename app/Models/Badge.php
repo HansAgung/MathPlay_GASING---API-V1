@@ -13,6 +13,8 @@ class Badge extends Model
         'title_badges',
         'badges_desc',
         'badges_img',
+        'point',
+        'energy',
     ];
 }
 

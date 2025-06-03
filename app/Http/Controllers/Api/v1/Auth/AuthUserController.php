@@ -8,52 +8,59 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class AuthUserController extends Controller
 {
-    public function register(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'username'       => 'required|string|max:255|unique:users',
-            'fullname'       => 'required|string|max:255',
-            'email'          => 'required|email|max:255|unique:users',
-            'password'       => 'required|string|min:6|confirmed',
-            'birth'          => 'required|date',
-            'gender'         => 'required|in:male,female',
-            'character_img'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'user_desc'      => 'nullable|string',
-        ]);
+    
+public function register(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'username'       => 'required|string|max:255|unique:users',
+        'fullname'       => 'required|string|max:255',
+        'email'          => 'required|email|max:255|unique:users',
+        'password'       => 'required|string|min:6|confirmed',
+        'birth'          => 'required|date',
+        'gender'         => 'required|in:male,female',
+        'character_img'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        'user_desc'      => 'nullable|string',
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $characterImagePath = null;
-        if ($request->hasFile('character_img')) {
-            $characterImagePath = $request->file('character_img')->store('images/characters', 'public');
-        }
-
-        $user = User::create([
-            'username'      => $request->username,
-            'fullname'      => $request->fullname,
-            'email'         => $request->email,
-            'password'      => Hash::make($request->password),
-            'birth'         => $request->birth,
-            'gender'        => $request->gender,
-            'character_img' => $characterImagePath,
-            'user_desc'     => $request->user_desc ?? null,
-            'lives'         => 5,
-            'is_active'     => true,
-        ]);
-
-        $token = $user->createToken('mobile_register')->plainTextToken;
-
-        return response()->json([
-            'access_token' => $token,
-            'token_type'   => 'Bearer',
-            'user'         => $user,
-        ], 201);
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
     }
+
+    $characterImageUrl = null;
+
+    if ($request->hasFile('character_img')) {
+        $uploadedFileUrl = Cloudinary::upload($request->file('character_img')->getRealPath(), [
+            'folder' => 'character_images'
+        ])->getSecurePath();
+
+        $characterImageUrl = $uploadedFileUrl;
+    }
+
+    $user = User::create([
+        'username'      => $request->username,
+        'fullname'      => $request->fullname,
+        'email'         => $request->email,
+        'password'      => Hash::make($request->password),
+        'birth'         => $request->birth,
+        'gender'        => $request->gender,
+        'character_img' => $characterImageUrl,
+        'user_desc'     => $request->user_desc ?? null,
+        'lives'         => 5,
+        'is_active'     => true,
+    ]);
+
+    $token = $user->createToken('mobile_register')->plainTextToken;
+
+    return response()->json([
+        'access_token' => $token,
+        'token_type'   => 'Bearer',
+        'user'         => $user,
+    ], 201);
+}
 
     public function login(Request $request)
     {
@@ -94,14 +101,6 @@ class AuthUserController extends Controller
         return response()->json([
             'message' => 'Logout berhasil.',
         ], 200);
-    }
-    
-
-    public function profile(Request $request)
-    {
-        return response()->json([
-            'user' => $request->user(),
-        ]);
     }
 
     public function forgotPassword(Request $request)

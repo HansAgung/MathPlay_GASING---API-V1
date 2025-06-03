@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Admin;
 
+
 class AuthAdminController extends Controller
 {
     public function register(Request $request)
