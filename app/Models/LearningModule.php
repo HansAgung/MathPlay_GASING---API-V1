@@ -18,4 +18,9 @@ class LearningModule extends Model
         'title_modules',
         'description_modules',
     ];
+
+    // public function subject()
+    // {
+    //     return $this->belongsTo(LearningSubject::class, 'id_learning_subjects', 'id_learning_subjects');
+    // }
 }

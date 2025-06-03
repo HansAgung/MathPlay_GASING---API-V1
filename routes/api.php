@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\v1\UserController;
 use App\Http\Controllers\Api\v1\Learning\LearningSubjectController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\v1\Learning\LearningModulesController;
+use App\Http\Controllers\Api\v1\Learning\LearningUnitController;
+use App\Http\Controllers\Api\v1\Learning\Asset_Modules\InputQuizController;
 
 //Address untuk test
 use App\Http\Controllers\Api\test\AuthMockController;
@@ -53,24 +55,66 @@ Route::prefix('v1')->group(function () {
     Route::prefix('users')->group(function () {
         Route::get('/getUsers', [UserController::class, 'getAllUsers']);
         Route::get('/getUsers/{id}', [UserController::class, 'getAllUsersById']);
+        Route::get('/history/{id}', [UserController::class, 'getHistoryLessonUser']);
     });
 
-    //Set route untuk learning subject
     Route::prefix('learning')->group(function () {
+        //Set route untuk learning subject
         Route::prefix('learning-subject')->group(function () {
             Route::get('/', [LearningSubjectController::class, 'showLearningSubjects']);
             Route::post('/', [LearningSubjectController::class, 'addLearningSubjects']);
             Route::post('{id}', [LearningSubjectController::class, 'updateLearningSubject']);
             Route::delete('{id}',[LearningSubjectController::class, 'deleteLearningSubject']);
         }); 
-    });
 
-    //Set route untuk learning modules
-    Route::prefix('learning')->group(function () {
+        //Set route untuk learning modules
         Route::prefix('learning-modules')->group(function () {
             Route::get('/', [LearningModulesController::class, 'getLearningModules']);
             Route::post('/', [LearningModulesController::class, 'addLearningModules']);
-        }); 
+            Route::post('/updateModule/{id}', [LearningModulesController::class, 'editLearningModules']);
+            Route::delete('/deleteModule/{id}', [LearningModulesController::class, 'deleteLearningModules']);
+        });
+        
+        Route::prefix('learning-units')->group(function () {
+            Route::get('/units', [LearningUnitController::class, 'index']);
+            Route::post('/units', [LearningUnitController::class, 'store']);
+            Route::get('/units/{id}', [LearningUnitController::class, 'show']);
+            Route::put('/units/{id}', [LearningUnitController::class, 'update']);
+            Route::delete('/units/{id}', [LearningUnitController::class, 'destroy']);
+        });
+
+        Route::prefix('asset-modules')->group(function () {
+            Route::prefix('input-quizzes')->group(function () {
+                Route::get('/',[InputQuizController::class, 'showQuiz']);
+                Route::post('/', [InputQuizController::class, 'store']);
+                Route::put('/{id}', [InputQuizController::class, 'update']);
+                Route::delete('/{id}', [InputQuizController::class, 'destroy']);
+            });
+
+            Route::prefix('option-quizzes')->group(function () {
+                Route::post('/', [OptionQuizController::class, 'store']);
+                Route::put('/{id}', [OptionQuizController::class, 'update']);
+                Route::delete('/{id}', [OptionQuizController::class, 'destroy']);
+            });
+
+            Route::prefix('video-lessons')->group(function () {
+                Route::post('/', [VideoLessonController::class, 'store']);
+                Route::put('/{id}', [VideoLessonController::class, 'update']);
+                Route::delete('/{id}', [VideoLessonController::class, 'destroy']);
+            });
+
+            Route::prefix('flashcard-games')->group(function () {
+                Route::post('/', [FlashcardGameController::class, 'store']);
+                Route::put('/{id}', [FlashcardGameController::class, 'update']);
+                Route::delete('/{id}', [FlashcardGameController::class, 'destroy']);
+            });
+
+            Route::prefix('flashcard-cards')->group(function () {
+                Route::post('/', [FlashcardCardController::class, 'store']);
+                Route::put('/{id}', [FlashcardCardController::class, 'update']);
+                Route::delete('/{id}', [FlashcardCardController::class, 'destroy']);
+            });
+        });
     });
 });
 

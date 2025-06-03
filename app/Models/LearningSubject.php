@@ -17,6 +17,7 @@ class LearningSubject extends Model
         'title_learning_subject',
         'descripsion_learning_subject',
         'img_card_subject',
+        'status'
     ];
 
     public function admin()

@@ -23,6 +23,7 @@ class LearningSubjectController extends Controller
             'title_learning_subject' => 'required|string|max:100',
             'descripsion_learning_subject' => 'required|string|max:100' ,
             'img_card_subject' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+            'status'=> 'required|string|max:100',
         ]);
 
         $uplaodedImg = Cloudinary::upload($request->file('img_card_subject')->getRealPath()) -> getSecurePath();
@@ -31,7 +32,8 @@ class LearningSubjectController extends Controller
             'id_admins' => $request->id_admins,
             'title_learning_subject' => $request->title_learning_subject,
             'descripsion_learning_subject' => $request->descripsion_learning_subject,
-            'img_card_subject' => $uplaodedImg,  
+            'img_card_subject' => $uplaodedImg, 
+            'status' => $request->status, 
         ]);
 
         return response()->json([
@@ -53,7 +55,7 @@ class LearningSubjectController extends Controller
             'img_card_subject' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        $fields = ['id_admins','title_learning_subject','descripsion_learning_subject'];
+        $fields = ['id_admins','title_learning_subject','descripsion_learning_subject','status'];
         $data = [];
 
         foreach ($fields as $field) {

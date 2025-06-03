@@ -69,7 +69,6 @@ class BadgesController extends Controller
             }
         }
 
-        //Update image badges
         if($request->hasFile('badges_img')) {
             $updloadImage = Cloudinary::upload($request->file('badges_img')->getRealPath(), [
                 'folder' => 'mathplay_gasing/badges'
