@@ -11,7 +11,7 @@ class LearningUnitController extends Controller
     {
         return response()->json([
             'message' => 'Daftar learning units',
-            'data' => LearningUnit::with(['inputQuizzes', 'optionQuizzes', 'videoLessons', 'flashcardGames.cards'])->get()
+            'data' => LearningUnit::with(['inputQuizzes.questionsQuiz', 'optionQuizzes.questionsQuiz', 'videoLessons','flashcardGames.cards'])->get()
         ]);
     }
 

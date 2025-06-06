@@ -12,38 +12,81 @@ class InputQuizController extends Controller
         return response()->json(InputQuiz::all()); 
     }
 
-    public function store(Request $request)
+    public function storeInputQuiz(Request $request)
     {
+        try {
+            $validated = $request->validate([
+                'id_learning_units' => 'required|integer|exists:learning_units,id_learning_units',
+                'title_question'    => 'required|string|max:255',
+                'set_time'          => 'required|integer|min:1',
+                'type_assets'       => 'nullable|string|max:255',
+                'energy_cost'       => 'required|integer|min:0',
+                'status'            => 'nullable|boolean',
+            ]);
+
+            $inputQuiz = InputQuiz::create($validated);
+
+            return response()->json([
+                'message' => 'Input quiz berhasil ditambahkan.',
+                'data'    => $inputQuiz
+            ], 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validasi gagal.',
+                'errors'  => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan saat menyimpan data.',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function updateInputQuiz(Request $request, $id)
+    {
+        $inputQuiz = InputQuiz::find($id);
+
+        if (!$inputQuiz) {
+            return response()->json([
+                'message' => 'Data input quiz tidak ditemukan.'
+            ], 404);
+        }
+
         $validated = $request->validate([
-            'id_learning_units' => 'required|integer',
-            'title_question' => 'required|string',
-            'set_time' => 'required|integer',
+            'id_learning_units' => 'sometimes|integer',
+            'title_question' => 'sometimes|string',
+            'set_time' => 'sometimes|integer',
             'type_assets' => 'nullable|string',
-            'energy_cost' => 'required|integer',
+            'energy_cost' => 'sometimes|integer',
             'status' => 'nullable|boolean',
-            'question_quiz' => 'required|string',
-            'description_question' => 'nullable|string',
-            'option_1' => 'nullable|string',
-            'option_2' => 'nullable|string',
-            'option_3' => 'nullable|string',
-            'option_4' => 'nullable|string',
-            'question_answer' => 'required|string',
         ]);
 
-        return InputQuiz::create($validated);
+        $inputQuiz->update($validated);
+
+        return response()->json([
+            'message' => 'Input quiz berhasil diperbarui.',
+            'data' => $inputQuiz
+        ], 200);
     }
 
-    public function update(Request $request, $id)
+    public function destroyInputQuiz($id)
     {
-        $quiz = InputQuiz::findOrFail($id);
-        $quiz->update($request->all());
-        return response()->json(['message' => 'Updated successfully', 'data' => $quiz]);
-    }
+        $inputQuiz = InputQuiz::find($id);
 
-    public function destroy($id)
-    {
-        InputQuiz::destroy($id);
-        return response()->json(['message' => 'Deleted successfully']);
-    }
+        if (!$inputQuiz) {
+            return response()->json([
+                'message' => 'Data input quiz tidak ditemukan.'
+            ], 404);
+        }
 
+        $inputQuiz->delete();
+
+        return response()->json([
+            'message' => 'Input quiz berhasil dihapus.'
+        ], 200);
+    }
 }

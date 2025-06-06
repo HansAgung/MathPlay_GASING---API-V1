@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\v1\Learning\LearningModulesController;
 use App\Http\Controllers\Api\v1\Learning\LearningUnitController;
 use App\Http\Controllers\Api\v1\Learning\Asset_Modules\InputQuizController;
+use App\Http\Controllers\Api\v1\Learning\Asset_Modules\OptionQuizController;
+use App\Http\Controllers\Api\v1\Learning\Asset_Modules\VideoLessonController;
+use App\Http\Controllers\Api\v1\Learning\Asset_Modules\FlashCardGameController;
+use App\Http\Controllers\Api\v1\Learning\Asset_Modules\FlashcardCardController;
+use App\Http\Controllers\Api\v1\Learning\QuizScoreController;
 
 //Address untuk test
 use App\Http\Controllers\Api\test\AuthMockController;
@@ -75,6 +80,7 @@ Route::prefix('v1')->group(function () {
             Route::delete('/deleteModule/{id}', [LearningModulesController::class, 'deleteLearningModules']);
         });
         
+        //Set route untuk learning-units
         Route::prefix('learning-units')->group(function () {
             Route::get('/units', [LearningUnitController::class, 'index']);
             Route::post('/units', [LearningUnitController::class, 'store']);
@@ -86,34 +92,45 @@ Route::prefix('v1')->group(function () {
         Route::prefix('asset-modules')->group(function () {
             Route::prefix('input-quizzes')->group(function () {
                 Route::get('/',[InputQuizController::class, 'showQuiz']);
-                Route::post('/', [InputQuizController::class, 'store']);
-                Route::put('/{id}', [InputQuizController::class, 'update']);
-                Route::delete('/{id}', [InputQuizController::class, 'destroy']);
+                Route::post('/', [InputQuizController::class, 'storeInputQuiz']);
+                Route::post('/updateData/{id}', [InputQuizController::class, 'updateInputQuiz']);
+                Route::delete('deleteData/{id}', [InputQuizController::class, 'destroyInputQuiz']);
             });
 
             Route::prefix('option-quizzes')->group(function () {
-                Route::post('/', [OptionQuizController::class, 'store']);
-                Route::put('/{id}', [OptionQuizController::class, 'update']);
-                Route::delete('/{id}', [OptionQuizController::class, 'destroy']);
+                Route::get('/',[OptionQuizController::class, 'showOptionQuiz']);
+                Route::post('/', [OptionQuizController::class, 'storeOptionQuiz']);
+                Route::patch('/updateData/{id}', [OptionQuizController::class, 'updateOptionQuiz']);
+                Route::delete('deleteData/{id}', [OptionQuizController::class, 'destroyOptionQuiz']);
             });
 
             Route::prefix('video-lessons')->group(function () {
-                Route::post('/', [VideoLessonController::class, 'store']);
-                Route::put('/{id}', [VideoLessonController::class, 'update']);
-                Route::delete('/{id}', [VideoLessonController::class, 'destroy']);
+                Route::get('/', [VideoLessonController::class, 'index']);         
+                Route::post('/', [VideoLessonController::class, 'store']);        
+                Route::get('/{id}', [VideoLessonController::class, 'show']);      
+                Route::post('/{id}', [VideoLessonController::class, 'updateVideoLesson']); 
+                Route::post('/video-lesson-contents/{id}', [VideoLessonController::class, 'updateLessonContent']);   
+                Route::delete('/{id}', [VideoLessonController::class, 'destroy']); 
             });
 
             Route::prefix('flashcard-games')->group(function () {
+                Route::get('/', [FlashcardGameController::class, 'index']);
+                Route::get('/flashcard-cards/{id}', [FlashcardCardController::class, 'show']);
                 Route::post('/', [FlashcardGameController::class, 'store']);
-                Route::put('/{id}', [FlashcardGameController::class, 'update']);
+                Route::patch('/game/{id}', [FlashcardGameController::class, 'updateFlashcardGame']);
+                Route::patch('/card/{id}', [FlashcardGameController::class, 'updateFlashcardCard']);
                 Route::delete('/{id}', [FlashcardGameController::class, 'destroy']);
+                Route::delete('/card/{id}', [FlashcardGameController::class, 'destroyCard']);
             });
+        });
 
-            Route::prefix('flashcard-cards')->group(function () {
-                Route::post('/', [FlashcardCardController::class, 'store']);
-                Route::put('/{id}', [FlashcardCardController::class, 'update']);
-                Route::delete('/{id}', [FlashcardCardController::class, 'destroy']);
-            });
+        Route::prefix('quiz-score')->group(function () {
+            Route::get('/', [QuizScoreController::class, 'index']);
+            Route::post('/', [QuizScoreController::class, 'store']);
+            Route::get('/{id}', [QuizScoreController::class, 'show']);
+            Route::patch('/{id}', [QuizScoreController::class, 'update']);
+            Route::delete('/{id}', [QuizScoreController::class, 'destroy']);
+            Route::get('/leaderboard/post-test', [QuizScoreController::class, 'getPostTestScores']);
         });
     });
 });

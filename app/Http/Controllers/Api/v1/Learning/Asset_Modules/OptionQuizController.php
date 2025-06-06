@@ -8,11 +8,11 @@ use App\Models\OptionQuiz;
 
 class OptionQuizController extends Controller
 {
-    public function showQuiz() {
+    public function showOptionQuiz() {
         return response()->json(OptionQuiz::all()); 
     }
 
-    public function store(Request $request)
+    public function storeOptionQuiz(Request $request)
     {
         $validated = $request->validate([
             'id_learning_units' => 'required|integer',
@@ -21,26 +21,39 @@ class OptionQuizController extends Controller
             'type_assets' => 'nullable|string',
             'energy_cost' => 'required|integer',
             'status' => 'required|boolean',
-            'question_quiz' => 'required|string',
-            'description_question' => 'nullable|string',
-            'option_1' => 'nullable|string',
-            'option_2' => 'nullable|string',
-            'option_3' => 'nullable|string',
-            'option_4' => 'nullable|string',
-            'question_answer' => 'required|string',
         ]);
 
         return OptionQuiz::create($validated);
     }
 
-    public function update(Request $request, $id)
+    public function updateOptionQuiz(Request $request, $id)
     {
-        $quiz = OptionQuiz::findOrFail($id);
-        $quiz->update($request->all());
-        return response()->json(['message' => 'Updated successfully', 'data' => $quiz]);
+       $optionQuiz = OptionQuiz::find($id);
+
+       if(!$optionQuiz) {
+         return response()->json([
+            'message' => 'Data option quiz tidak ditemukan.'
+        ], 404);
+       }
+
+       $validated = $request->validate([
+            'id_learning_units' => 'sometimes|integer',
+            'title_question' => 'sometimes|string',
+            'set_time' => 'sometimes|integer',
+            'type_assets' => 'nullable|string',
+            'energy_cost' => 'sometimes|integer',
+            'status' => 'nullable|boolean',
+        ]);
+
+        $optionQuiz->update($validated);
+
+        return response()->json([
+            'message' => 'Input quiz berhasil diperbarui.',
+            'data' => $optionQuiz
+        ], 200);
     }
 
-    public function destroy($id)
+    public function destroyOptionQuiz($id)
     {
         OptionQuiz::destroy($id);
         return response()->json(['message' => 'Deleted successfully']);

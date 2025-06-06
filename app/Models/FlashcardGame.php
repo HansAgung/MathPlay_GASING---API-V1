@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class FlashcardGame extends Model
 {
     protected $primaryKey = 'id_flashcard_game';
+    protected $table = 'flashcard_minigame';
     protected $fillable = [
         'id_learning_units', 'patternCount', 'matchCount', 'cards', 'set_time'
     ];

@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class FlashcardCard extends Model
 {
     protected $primaryKey = 'id_cards';
+    protected $table = 'flashcard_cards';
     public $timestamps = false;
 
     protected $fillable = [
-        'id_flashcard_game', 'img_cards', 'created_at'
+        'id_flashcard_game', 
+        'img_cards', 
+        'created_at'
     ];
 
     public function game()
