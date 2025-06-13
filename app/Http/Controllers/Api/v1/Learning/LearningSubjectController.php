@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\v1\Learning;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\LearningSubject;
+use App\Models\User;
+use App\Models\UserLessonHistory;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class LearningSubjectController extends Controller
@@ -17,27 +19,41 @@ class LearningSubjectController extends Controller
         ], 201);
     }
 
-    public function addLearningSubjects(Request $request) {
-        $request -> validate([
-            'id_admins' => 'required|integer',
+    public function addLearningSubjects(Request $request)
+    {
+        $request->validate([
+            'id_admins' => 'required|integer|exists:admins,id_admins',
             'title_learning_subject' => 'required|string|max:100',
-            'descripsion_learning_subject' => 'required|string|max:100' ,
+            'descripsion_learning_subject' => 'required|string|max:100',
             'img_card_subject' => 'required|image|mimes:jpg,jpeg,png|max:2048',
-            'status'=> 'required|string|max:100',
         ]);
 
-        $uplaodedImg = Cloudinary::upload($request->file('img_card_subject')->getRealPath()) -> getSecurePath();
+        // Upload gambar ke Cloudinary
+        $uploadedImg = Cloudinary::upload($request->file('img_card_subject')->getRealPath())->getSecurePath();
 
+        // Simpan ke tabel learning_subjects
         $subject = LearningSubject::create([
             'id_admins' => $request->id_admins,
             'title_learning_subject' => $request->title_learning_subject,
             'descripsion_learning_subject' => $request->descripsion_learning_subject,
-            'img_card_subject' => $uplaodedImg, 
-            'status' => $request->status, 
+            'img_card_subject' => $uploadedImg,
         ]);
 
+        // Ambil semua user
+        $users = User::all();
+
+        // Tambahkan entri ke user_lesson_history untuk setiap user
+        foreach ($users as $user) {
+            UserLessonHistory::create([
+                'id_users' => $user->id_users,
+                'id_learning_subjects' => $subject->id_learning_subjects,
+                'status' => $subject->id_learning_subjects == 1 ? 'onProgress' : 'toDo',
+                'created_at' => now(),
+            ]);
+        }
+
         return response()->json([
-            'message' => 'Pelajaran berhasil ditambahkan!',
+            'message' => 'Pelajaran berhasil ditambahkan dan disinkronkan ke semua user!',
             'data' => $subject,
         ], 201);
     }

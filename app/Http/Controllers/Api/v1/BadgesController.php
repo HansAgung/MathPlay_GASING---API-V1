@@ -13,12 +13,28 @@ class BadgesController extends Controller
     {
         return response()->json(Badge::all());
     }
+    
+    public function getBadgesByID($id)
+    {
+        $badge = Badge::find($id);
 
+        if (!$badge) {
+            return response()->json([
+                'message' => 'Badge tidak ditemukan.'
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Detail badge ditemukan.',
+            'data' => $badge
+        ], 200);
+    }
+    
     public function storeBadges(Request $request)
     {
         $request->validate([
             'title_badges' => 'required|string|max:100',
-            'badges_desc' => 'required|string|max:255',
+            'badges_desc' => 'requir ed|string|max:255',
             'badges_img' => 'required|image|mimes:jpg,jpeg,png|max:2048',
             'point' => 'required|integer',
             'energy' => 'required|integer',

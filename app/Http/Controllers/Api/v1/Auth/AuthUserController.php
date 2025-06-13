@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\v1\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\LearningSubject;
+use App\Models\UserLessonHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -12,55 +14,67 @@ use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class AuthUserController extends Controller
 {
-    
-public function register(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'username'       => 'required|string|max:255|unique:users',
-        'fullname'       => 'required|string|max:255',
-        'email'          => 'required|email|max:255|unique:users',
-        'password'       => 'required|string|min:6|confirmed',
-        'birth'          => 'required|date',
-        'gender'         => 'required|in:male,female',
-        'character_img'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        'user_desc'      => 'nullable|string',
-    ]);
 
-    if ($validator->fails()) {
-        return response()->json(['errors' => $validator->errors()], 422);
+    public function register(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'username'       => 'required|string|max:255|unique:users',
+            'fullname'       => 'required|string|max:255',
+            'email'          => 'required|email|max:255|unique:users',
+            'password'       => 'required|string|min:6|confirmed',
+            'birth'          => 'required|date',
+            'gender'         => 'required|in:male,female',
+            'character_img'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'user_desc'      => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $characterImageUrl = null;
+
+        if ($request->hasFile('character_img')) {
+            $uploadedFileUrl = Cloudinary::upload($request->file('character_img')->getRealPath(), [
+                'folder' => 'character_images'
+            ])->getSecurePath();
+
+            $characterImageUrl = $uploadedFileUrl;
+        }
+
+        $user = User::create([
+            'username'      => $request->username,
+            'fullname'      => $request->fullname,
+            'email'         => $request->email,
+            'password'      => Hash::make($request->password),
+            'birth'         => $request->birth,
+            'gender'        => $request->gender,
+            'character_img' => $characterImageUrl,
+            'user_desc'     => $request->user_desc ?? null,
+            'lives'         => 5,
+            'is_active'     => true,
+        ]);
+
+        // ✅ Tambahan: isi otomatis user_lesson_history
+        $subjects = LearningSubject::all();
+
+        foreach ($subjects as $subject) {
+            UserLessonHistory::create([
+                'id_users'              => $user->id_users,
+                'id_learning_subjects'  => $subject->id_learning_subjects,
+                'status'                => $subject->id_learning_subjects == 1 ? 'onProgress' : 'toDo',
+                'created_at'            => now(),
+            ]);
+        }
+
+        $token = $user->createToken('mobile_register')->plainTextToken;
+
+        return response()->json([
+            'access_token' => $token,
+            'token_type'   => 'Bearer',
+            'user'         => $user,
+        ], 201);
     }
-
-    $characterImageUrl = null;
-
-    if ($request->hasFile('character_img')) {
-        $uploadedFileUrl = Cloudinary::upload($request->file('character_img')->getRealPath(), [
-            'folder' => 'character_images'
-        ])->getSecurePath();
-
-        $characterImageUrl = $uploadedFileUrl;
-    }
-
-    $user = User::create([
-        'username'      => $request->username,
-        'fullname'      => $request->fullname,
-        'email'         => $request->email,
-        'password'      => Hash::make($request->password),
-        'birth'         => $request->birth,
-        'gender'        => $request->gender,
-        'character_img' => $characterImageUrl,
-        'user_desc'     => $request->user_desc ?? null,
-        'lives'         => 5,
-        'is_active'     => true,
-    ]);
-
-    $token = $user->createToken('mobile_register')->plainTextToken;
-
-    return response()->json([
-        'access_token' => $token,
-        'token_type'   => 'Bearer',
-        'user'         => $user,
-    ], 201);
-}
 
     public function login(Request $request)
     {
@@ -124,6 +138,21 @@ public function register(Request $request)
 
         return response()->json([
             'message' => 'Password berhasil diperbarui.'
+        ], 200);
+    }
+
+    public function getUserById($id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'User tidak ditemukan.'
+            ], 404);
+        }
+
+        return response()->json([
+            'user' => $user
         ], 200);
     }
 }

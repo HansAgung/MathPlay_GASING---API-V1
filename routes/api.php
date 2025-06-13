@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\v1\Learning\Asset_Modules\OptionQuizController;
 use App\Http\Controllers\Api\v1\Learning\Asset_Modules\VideoLessonController;
 use App\Http\Controllers\Api\v1\Learning\Asset_Modules\FlashCardGameController;
 use App\Http\Controllers\Api\v1\Learning\Asset_Modules\FlashcardCardController;
+use App\Http\Controllers\Api\v1\UserLessonHistoryController;
+use App\Http\Controllers\Api\v1\UserModulesHistoryController;
 use App\Http\Controllers\Api\v1\Learning\QuizScoreController;
 
 //Address untuk test
@@ -30,6 +32,7 @@ Route::prefix('v1')->group(function () {
     Route::prefix('auth-user')->group(function () {
         Route::post('register', [AuthUserController::class, 'register']);
         Route::post('login', [AuthUserController::class, 'login']);
+        Route::get('getUserbyID/{id}', [AuthUserController::class, 'getUserById']);
         Route::post('forgot-password', [AuthUserController::class, 'forgotPassword']);
 
         Route::middleware('auth:sanctum')->group(function () {
@@ -50,7 +53,8 @@ Route::prefix('v1')->group(function () {
 
     //Set route untuk badges
      Route::prefix('badges')->group(function () {
-        Route::get('/', [BadgesController::class, 'showAllBadges']);         
+        Route::get('/', [BadgesController::class, 'showAllBadges']);  
+        Route::get('/{id}',[BadgesController::class, 'getBadgesByID']);       
         Route::post('/', [BadgesController::class, 'storeBadges']);              
         Route::post('updateBadges/{id}', [BadgesController::class, 'updateBadges']);     
         Route::delete('{id}', [BadgesController::class, 'destroyBadges']); 
@@ -75,6 +79,7 @@ Route::prefix('v1')->group(function () {
         //Set route untuk learning modules
         Route::prefix('learning-modules')->group(function () {
             Route::get('/', [LearningModulesController::class, 'getLearningModules']);
+            Route::get('/user_subject/{id_learning_subjects}', [LearningModulesController::class, 'getModulesBySubjectId']);
             Route::post('/', [LearningModulesController::class, 'addLearningModules']);
             Route::post('/updateModule/{id}', [LearningModulesController::class, 'editLearningModules']);
             Route::delete('/deleteModule/{id}', [LearningModulesController::class, 'deleteLearningModules']);
@@ -92,6 +97,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('asset-modules')->group(function () {
             Route::prefix('input-quizzes')->group(function () {
                 Route::get('/',[InputQuizController::class, 'showQuiz']);
+                Route::get('/unit/{id_learning_units}', [InputQuizController::class, 'showQuizByModuleID']);
                 Route::post('/', [InputQuizController::class, 'storeInputQuiz']);
                 Route::post('/updateData/{id}', [InputQuizController::class, 'updateInputQuiz']);
                 Route::delete('deleteData/{id}', [InputQuizController::class, 'destroyInputQuiz']);
@@ -133,6 +139,10 @@ Route::prefix('v1')->group(function () {
             Route::get('/leaderboard/post-test', [QuizScoreController::class, 'getPostTestScores']);
         });
     });
+
+    Route::get('/lesson-history/{id}', [UserLessonHistoryController::class, 'showLessonByID']);
+    Route::get('/module-history/user/{id_users}', [UserModulesHistoryController::class, 'showModulesByID']);
+    Route::get('/module-history/{userId}/{subjectId}', [UserModulesHistoryController::class, 'showModuleHistoryByUserAndSubject']);
 });
 
 //Set route untuk test 

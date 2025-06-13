@@ -19,6 +19,12 @@ class LearningModule extends Model
         'description_modules',
     ];
 
+    public function userModuleHistories()
+    {
+        return $this->hasMany(UserModuleHistory::class, 'id_learning_modules', 'id_learning_modules');
+    }
+
+
     // public function subject()
     // {
     //     return $this->belongsTo(LearningSubject::class, 'id_learning_subjects', 'id_learning_subjects');

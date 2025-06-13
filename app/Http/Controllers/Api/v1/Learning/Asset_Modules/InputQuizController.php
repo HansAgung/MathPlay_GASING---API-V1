@@ -89,4 +89,21 @@ class InputQuizController extends Controller
             'message' => 'Input quiz berhasil dihapus.'
         ], 200);
     }
+
+    public function showQuizByModuleID($id_learning_units)
+    {
+        $quizzes = InputQuiz::where('id_learning_units', $id_learning_units)->get();
+
+        if ($quizzes->isEmpty()) {
+            return response()->json([
+                'message' => 'Tidak ada quiz yang ditemukan untuk unit/modul tersebut.'
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Daftar quiz berhasil diambil berdasarkan ID unit/modul.',
+            'data' => $quizzes
+        ], 200);
+    }
+
 }

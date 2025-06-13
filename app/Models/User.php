@@ -38,4 +38,14 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    public function lessonHistories()
+    {
+        return $this->hasMany(UserLessonHistory::class, 'id_users');
+    }
+
+    public function moduleHistories()
+    {
+        return $this->hasMany(UserModuleHistory::class, 'id_users', 'id_users');
+    }
 }

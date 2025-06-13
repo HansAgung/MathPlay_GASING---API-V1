@@ -9,7 +9,7 @@ class UserLessonHistory extends Model
     protected $table = 'user_lesson_history'; 
     protected $primaryKey = 'id_lesson_history'; 
 
-    public $timestamps = false; // karena kamu pakai created_at saja
+    public $timestamps = false; 
 
     protected $fillable = [
         'id_users',
