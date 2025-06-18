@@ -7,6 +7,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\FlashcardGame;
 use App\Models\FlashcardCard;
+use App\Models\LearningUnit;
+use App\Models\User;
+use App\Models\UserUnitsHistory;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class FlashcardGameController extends Controller
 {
@@ -15,35 +19,72 @@ class FlashcardGameController extends Controller
         $games = FlashcardGame::with('cards')->get();
         return response()->json(['data' => $games]);
     }
-
-    public function store(Request $request)
+    
+    public function store(Request $request, $id_learning_modules)
     {
-        $validated = $request->validate([
-            'id_learning_units' => 'required|exists:learning_units,id_learning_units',
-            'patternCount' => 'required|integer',
-            'matchCount' => 'required|integer',
-            'set_time' => 'nullable|integer',
-            'cards' => 'required|array',
-            'cards.*.img_cards' => 'required|string',
-        ]);
-
-        DB::beginTransaction();
-
         try {
-            // Simpan flashcard game
+            $request->merge(['id_learning_modules' => $id_learning_modules]);
+
+            $validated = $request->validate([
+                'id_learning_modules' => 'required|integer|exists:learning_modules,id_learning_modules',
+                'patternCount' => 'required|integer',
+                'matchCount' => 'required|integer',
+                'set_time' => 'nullable|integer',
+                'cards' => 'required|array|min:1',
+                'cards.*.img_cards' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+            ]);
+
+            DB::beginTransaction();
+
+            // Hitung urutan unit berikutnya
+            $currentCount = LearningUnit::where('id_learning_modules', $validated['id_learning_modules'])->count();
+            $nextOrder = $currentCount + 1;
+
+            // Buat Learning Unit
+            $unit = LearningUnit::create([
+                'id_learning_modules' => $validated['id_learning_modules'],
+                'unit_learning_order' => $nextOrder,
+            ]);
+
+            // Buat Flashcard Game
             $game = FlashcardGame::create([
-                'id_learning_units' => $validated['id_learning_units'],
+                'id_learning_units' => $unit->id_learning_units,
                 'patternCount' => $validated['patternCount'],
                 'matchCount' => $validated['matchCount'],
                 'set_time' => $validated['set_time'],
                 'cards' => count($validated['cards']),
             ]);
 
-            // Simpan kartu
-            foreach ($validated['cards'] as $cardData) {
-                FlashcardCard::create([
-                    'id_flashcard_game' => $game->id_flashcard_game,
-                    'img_cards' => $cardData['img_cards']
+            // Simpan setiap kartu setelah upload ke Cloudinary
+            foreach ($validated['cards'] as $index => $cardData) {
+                $fileKey = "cards.{$index}.img_cards";
+
+                if ($request->hasFile($fileKey)) {
+                    $uploadedUrl = Cloudinary::upload(
+                        $request->file($fileKey)->getRealPath(),
+                        ['folder' => 'mathplay_gasing/flashcard_cards']
+                    )->getSecurePath();
+
+                    FlashcardCard::create([
+                        'id_flashcard_game' => $game->id_flashcard_game,
+                        'img_cards' => $uploadedUrl,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                } else {
+                    throw new \Exception("Gambar untuk kartu ke-" . ($index + 1) . " tidak ditemukan.");
+                }
+            }
+
+            // Tambahkan ke user_units_history
+            $users = User::all();
+            foreach ($users as $user) {
+                UserUnitsHistory::create([
+                    'id_users' => $user->id_users,
+                    'id_learning_units' => $unit->id_learning_units,
+                    'status' => $nextOrder === 1 ? 'onProgress' : 'toDo',
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             }
 
@@ -51,8 +92,15 @@ class FlashcardGameController extends Controller
 
             return response()->json([
                 'message' => 'Flashcard game created successfully',
-                'data' => $game->load('cards')
+                'data' => $game->load('cards'),
             ], 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validasi gagal.',
+                'errors' => $e->errors(),
+            ], 422);
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -79,22 +127,43 @@ class FlashcardGameController extends Controller
     public function updateFlashcardCard(Request $request, $id)
     {
         $validated = $request->validate([
-            'img_cards' => 'required|string',
+            'img_cards' => 'required|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
         $card = FlashcardCard::findOrFail($id);
-        $card->update($validated);
 
-        return response()->json(['message' => 'Flashcard card updated successfully', 'data' => $card]);
+        // Upload gambar ke Cloudinary
+        $uploadedUrl = Cloudinary::upload(
+            $request->file('img_cards')->getRealPath(),
+            ['folder' => 'mathplay_gasing/flashcard_cards']
+        )->getSecurePath();
+
+        // Update kolom img_cards dengan URL dari Cloudinary
+        $card->update([
+            'img_cards' => $uploadedUrl,
+        ]);
+
+        return response()->json([
+            'message' => 'Flashcard card updated successfully',
+            'data' => $card,
+        ]);
     }
 
     public function destroy($id)
     {
         $game = FlashcardGame::findOrFail($id);
+
+        $unitId = $game->id_learning_units;
+
         $game->cards()->delete();
         $game->delete();
 
-        return response()->json(['message' => 'Flashcard game and its cards deleted successfully']);
+        UserUnitsHistory::where('id_learning_units',$unitId)->delete();
+        LearningUnit::where('id_learning_units', $unitId)->delete();
+
+        return response()->json([
+            'message' => 'Flashcard game and its cards deleted successfully'
+        ], 200);
     }
 
     public function destroyCard($id)

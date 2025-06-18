@@ -8,7 +8,7 @@ class UserUnitsHistory extends Model
 {
     protected $table = 'user_units_history';
     protected $primaryKey = 'id_user_history';
-    public $timestamps = false; // karena hanya ada `created_at`
+    public $timestamps = false; 
 
     protected $fillable = [
         'id_users',
@@ -17,13 +17,11 @@ class UserUnitsHistory extends Model
         'created_at',
     ];
 
-    // Relasi ke User
     public function user()
     {
         return $this->belongsTo(User::class, 'id_users', 'id_users');
     }
 
-    // Relasi ke Learning Unit
     public function learningUnit()
     {
         return $this->belongsTo(LearningUnit::class, 'id_learning_units', 'id_learning_units');

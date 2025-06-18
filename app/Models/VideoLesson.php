@@ -9,7 +9,8 @@ class VideoLesson extends Model
     protected $primaryKey = 'id_video_lessons';
     protected $fillable = [
         'id_learning_units', 
-        'title_lessons', 'video_url_lessons', 
+        'title_lessons', 
+        'video_url_lessons', 
         'description_contents'
     ];
 

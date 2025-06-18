@@ -3,7 +3,10 @@ namespace App\Http\Controllers\Api\v1\Learning;
 
 use App\Http\Controllers\Controller;
 use App\Models\LearningUnit;
+use App\Models\User;
+use App\Models\UserUnitsHistory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class LearningUnitController extends Controller
 {
@@ -15,34 +18,44 @@ class LearningUnitController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function showUserUnitsByModules($id_users, $id_learning_modules)
     {
-        $request->validate([
-            'id_learning_modules' => 'required|exists:learning_module,id_learning_modules',
-            'title_learning_unit' => 'required|string|max:255',
-            'description_unit' => 'required|string',
-            'unit_learning_order' => 'required|integer'
-        ]);
+        try {
+            $units = LearningUnit::with([
+                'inputQuizzes',
+                'optionQuizzes',
+                'flashcardGames',
+                'videoLessons',
+            ])
+            ->where('id_learning_modules', $id_learning_modules)
+            ->orderBy('unit_learning_order', 'asc')
+            ->get()
+            ->map(function ($unit) use ($id_users) {
+                $history = UserUnitsHistory::where('id_users', $id_users)
+                    ->where('id_learning_units', $unit->id_learning_units)
+                    ->first();
 
-        $unit = LearningUnit::create($request->all());
+                return [
+                    'id_learning_units'   => $unit->id_learning_units,
+                    'unit_learning_order' => $unit->unit_learning_order,
+                    'status'              => $history ? $history->status : 'not_assigned',
+                    'input_quizzes'       => $unit->inputQuizzes,       // <- pakai 's'
+                    'option_quizzes'      => $unit->optionQuizzes,
+                    'flashcard_games'     => $unit->flashcardGames,
+                    'video_lessons'       => $unit->videoLessons,
+                ];
+            });
 
-        return response()->json(['message' => 'Unit berhasil ditambahkan', 'data' => $unit], 201);
-    }
-
-    public function update(Request $request, $id)
-    {
-        $unit = LearningUnit::findOrFail($id);
-        $unit->update($request->all());
-
-        return response()->json(['message' => 'Unit berhasil diperbarui', 'data' => $unit], 200);
-    }
-
-    public function destroy($id)
-    {
-        $unit = LearningUnit::findOrFail($id);
-        $unit->delete();
-
-        return response()->json(['message' => 'Unit berhasil dihapus'], 200);
+            return response()->json([
+                'message' => 'Data unit berhasil diambil',
+                'data'    => $units,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal mengambil data unit',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function show($id)

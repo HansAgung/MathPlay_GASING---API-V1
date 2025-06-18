@@ -8,7 +8,7 @@ class UserCharacter extends Model
 {
     protected $table = 'user_character';
     protected $primaryKey = 'id_user_character';
-    public $timestamps = false; // karena hanya ada created_at
+    public $timestamps = false; 
 
     protected $fillable = [
         'img_character',

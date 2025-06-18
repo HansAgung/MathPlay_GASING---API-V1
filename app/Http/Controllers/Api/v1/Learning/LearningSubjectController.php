@@ -28,10 +28,8 @@ class LearningSubjectController extends Controller
             'img_card_subject' => 'required|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        // Upload gambar ke Cloudinary
         $uploadedImg = Cloudinary::upload($request->file('img_card_subject')->getRealPath())->getSecurePath();
 
-        // Simpan ke tabel learning_subjects
         $subject = LearningSubject::create([
             'id_admins' => $request->id_admins,
             'title_learning_subject' => $request->title_learning_subject,
@@ -39,10 +37,8 @@ class LearningSubjectController extends Controller
             'img_card_subject' => $uploadedImg,
         ]);
 
-        // Ambil semua user
         $users = User::all();
 
-        // Tambahkan entri ke user_lesson_history untuk setiap user
         foreach ($users as $user) {
             UserLessonHistory::create([
                 'id_users' => $user->id_users,

@@ -14,7 +14,6 @@ class VideoLessonContent extends Model
         'description_material',
         'video_url',
         'material_img_support',
-        'order'
     ];
 
     public function videoLesson()

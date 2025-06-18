@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api\v1\Learning\Asset_Modules;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\InputQuiz;
+use App\Models\LearningUnit;
+use App\Models\User;
+use App\Models\UserUnitsHistory;
 
 class InputQuizController extends Controller
 {
@@ -12,23 +15,55 @@ class InputQuizController extends Controller
         return response()->json(InputQuiz::all()); 
     }
 
-    public function storeInputQuiz(Request $request)
+    public function storeInputQuiz(Request $request, $id_learning_modules)
     {
         try {
+            $request->merge(['id_learning_modules' => $id_learning_modules]);
+
             $validated = $request->validate([
-                'id_learning_units' => 'required|integer|exists:learning_units,id_learning_units',
-                'title_question'    => 'required|string|max:255',
-                'set_time'          => 'required|integer|min:1',
-                'type_assets'       => 'nullable|string|max:255',
-                'energy_cost'       => 'required|integer|min:0',
-                'status'            => 'nullable|boolean',
+                'id_learning_modules' => 'required|integer|exists:learning_modules,id_learning_modules',
+                'title_question'      => 'required|string|max:255',
+                'set_time'            => 'required|integer|min:1',
+                'type_assets'         => 'nullable|string|max:255',
+                'energy_cost'         => 'required|integer|min:0',
+                'test_type'           => 'required|string|max:255',
+                'id_badges'           => 'nullable|integer|exists:badges,id_badges',
+                'reward'              => 'nullable|string',
             ]);
 
-            $inputQuiz = InputQuiz::create($validated);
+            $currentCount = LearningUnit::where('id_learning_modules', $validated['id_learning_modules'])->count();
+            $nextOrder = $currentCount + 1;
+
+            $unit = LearningUnit::create([
+                'id_learning_modules' => $validated['id_learning_modules'],
+                'unit_learning_order' => $nextOrder,
+            ]);
+
+            $inputQuiz = InputQuiz::create([
+                'id_learning_units' => $unit->id_learning_units,
+                'title_question'    => $validated['title_question'],
+                'set_time'          => $validated['set_time'],
+                'type_assets'       => $validated['type_assets'] ?? null,
+                'energy_cost'       => $validated['energy_cost'],
+                'test_type'         => $validated['test_type'],
+                'id_badges'         => $validated['id_badges'] ?? null,
+                'reward'            => $validated['reward'] ?? null,
+            ]);
+
+            $users = User::all();
+            foreach ($users as $user) {
+                UserUnitsHistory::create([
+                    'id_users'          => $user->id_users,
+                    'id_learning_units' => $unit->id_learning_units,
+                    'status'            => $nextOrder === 1 ? 'onProgress' : 'toDo',
+                    'created_at'        => now(),
+                    'updated_at'        => now(),
+                ]);
+            }
 
             return response()->json([
-                'message' => 'Input quiz berhasil ditambahkan.',
-                'data'    => $inputQuiz
+                'message' => 'Input quiz dan unit berhasil ditambahkan.',
+                'data'    => $inputQuiz,
             ], 201);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -45,7 +80,6 @@ class InputQuizController extends Controller
         }
     }
 
-
     public function updateInputQuiz(Request $request, $id)
     {
         $inputQuiz = InputQuiz::find($id);
@@ -57,12 +91,13 @@ class InputQuizController extends Controller
         }
 
         $validated = $request->validate([
-            'id_learning_units' => 'sometimes|integer',
-            'title_question' => 'sometimes|string',
-            'set_time' => 'sometimes|integer',
-            'type_assets' => 'nullable|string',
-            'energy_cost' => 'sometimes|integer',
-            'status' => 'nullable|boolean',
+            'title_question'   => 'sometimes|string|max:255',
+            'set_time'         => 'sometimes|integer|min:1',
+            'type_assets'      => 'sometimes|nullable|string|max:255',
+            'energy_cost'      => 'sometimes|integer|min:0',
+            'test_type'        => 'sometimes|string|max:255',
+            'id_badges'        => 'sometimes|nullable|integer|exists:badges,id_badges',
+            'reward'           => 'sometimes|nullable|string',
         ]);
 
         $inputQuiz->update($validated);
@@ -83,11 +118,24 @@ class InputQuizController extends Controller
             ], 404);
         }
 
-        $inputQuiz->delete();
+        try {
+            $unitId = $inputQuiz->id_learning_units;
 
-        return response()->json([
-            'message' => 'Input quiz berhasil dihapus.'
-        ], 200);
+            $inputQuiz->delete();
+            
+            UserUnitsHistory::where('id_learning_units', $unitId)->delete();
+            LearningUnit::where('id_learning_units', $unitId)->delete();
+
+            return response()->json([
+                'message' => 'Input quiz, unit terkait, dan riwayat pengguna berhasil dihapus.'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan saat menghapus data.',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function showQuizByModuleID($id_learning_units)
@@ -105,5 +153,4 @@ class InputQuizController extends Controller
             'data' => $quizzes
         ], 200);
     }
-
 }

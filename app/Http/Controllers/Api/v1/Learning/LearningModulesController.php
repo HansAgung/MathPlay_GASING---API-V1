@@ -45,7 +45,6 @@ class LearningModulesController extends Controller
             'description_modules' => 'required|string',
         ]);
 
-        // Buat data modul baru
         $module = LearningModule::create([
             'id_learning_subjects' => $request->id_learning_subjects,
             'title_modules' => $request->title_modules,
@@ -55,7 +54,6 @@ class LearningModulesController extends Controller
         // Ambil semua user
         $users = User::all();
 
-        // Tambahkan ke user_module_history
         foreach ($users as $user) {
             UserModuleHistory::create([
                 'id_users' => $user->id_users,

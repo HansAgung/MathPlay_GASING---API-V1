@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Api\v1\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\LearningSubject;
+use App\Models\LearningModule;
 use App\Models\UserLessonHistory;
+use App\Models\UserModuleHistory;
+use App\Models\UserUnitsHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -64,6 +67,17 @@ class AuthUserController extends Controller
                 'id_learning_subjects'  => $subject->id_learning_subjects,
                 'status'                => $subject->id_learning_subjects == 1 ? 'onProgress' : 'toDo',
                 'created_at'            => now(),
+            ]);
+        }
+
+        $modules = LearningModule::all();
+
+        foreach ($modules as $module) {
+            UserModuleHistory::create([
+                'id_users'             => $user->id_users,
+                'id_learning_modules'  => $module->id_learning_modules,
+                'status'               => $module->id_learning_modules == 1 ? 'onProgress' : 'toDo',
+                'created_at'           => now(),
             ]);
         }
 

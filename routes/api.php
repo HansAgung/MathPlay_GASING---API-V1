@@ -12,10 +12,16 @@ use App\Http\Controllers\Api\v1\Learning\LearningUnitController;
 use App\Http\Controllers\Api\v1\Learning\Asset_Modules\InputQuizController;
 use App\Http\Controllers\Api\v1\Learning\Asset_Modules\OptionQuizController;
 use App\Http\Controllers\Api\v1\Learning\Asset_Modules\VideoLessonController;
+use App\Http\Controllers\Api\v1\Learning\Asset_Modules\VideoLessonContentController;
 use App\Http\Controllers\Api\v1\Learning\Asset_Modules\FlashCardGameController;
+
+use App\Http\Controllers\Api\v1\Learning\Asset_Modules\InputQuizQuestionController;
+use App\Http\Controllers\Api\v1\Learning\Asset_Modules\OptionQuizQuestionController;
 use App\Http\Controllers\Api\v1\Learning\Asset_Modules\FlashcardCardController;
+use App\Http\Controllers\Api\v1\UserCharacterController;
 use App\Http\Controllers\Api\v1\UserLessonHistoryController;
 use App\Http\Controllers\Api\v1\UserModulesHistoryController;
+use App\Http\Controllers\Api\v1\UserUnitsHistoryController;
 use App\Http\Controllers\Api\v1\Learning\QuizScoreController;
 
 //Address untuk test
@@ -88,46 +94,76 @@ Route::prefix('v1')->group(function () {
         //Set route untuk learning-units
         Route::prefix('learning-units')->group(function () {
             Route::get('/units', [LearningUnitController::class, 'index']);
-            Route::post('/units', [LearningUnitController::class, 'store']);
             Route::get('/units/{id}', [LearningUnitController::class, 'show']);
-            Route::put('/units/{id}', [LearningUnitController::class, 'update']);
-            Route::delete('/units/{id}', [LearningUnitController::class, 'destroy']);
+            // Route::get('/{id_user}/{id_modules}', [UserUnitsHistoryController::class, 'showUnitbyUserAndModule']);
+            Route::get('/units/{id_users}/{id_learning_modules}', [LearningUnitController::class, 'showUserUnitsByModules']);
         });
 
         Route::prefix('asset-modules')->group(function () {
             Route::prefix('input-quizzes')->group(function () {
                 Route::get('/',[InputQuizController::class, 'showQuiz']);
                 Route::get('/unit/{id_learning_units}', [InputQuizController::class, 'showQuizByModuleID']);
-                Route::post('/', [InputQuizController::class, 'storeInputQuiz']);
+                Route::post('/{id_learning_modules}', [InputQuizController::class, 'storeInputQuiz']);
                 Route::post('/updateData/{id}', [InputQuizController::class, 'updateInputQuiz']);
                 Route::delete('deleteData/{id}', [InputQuizController::class, 'destroyInputQuiz']);
+                Route::prefix('input-question')->group(function () {
+                    Route::post('/{id_input_quizezz}', [InputQuizQuestionController::class, 'store']);
+                    Route::get('/', [InputQuizQuestionController::class, 'index']);
+                    Route::get('/{id}', [InputQuizQuestionController::class, 'showQuestionsByID']);
+                    Route::post('/updateData/{id}', [InputQuizQuestionController::class, 'update']);
+                    Route::delete('/{id}', [InputQuizQuestionController::class, 'destroy']);
+                });
             });
 
             Route::prefix('option-quizzes')->group(function () {
                 Route::get('/',[OptionQuizController::class, 'showOptionQuiz']);
-                Route::post('/', [OptionQuizController::class, 'storeOptionQuiz']);
-                Route::patch('/updateData/{id}', [OptionQuizController::class, 'updateOptionQuiz']);
+                // Route::post('/', [OptionQuizController::class, 'storeOptionQuiz']);
+                Route::post('/{id_learning_modules}', [OptionQuizController::class, 'storeOptionQuiz']);
+                Route::post('/updateData/{id}', [OptionQuizController::class, 'updateOptionQuiz']);
                 Route::delete('deleteData/{id}', [OptionQuizController::class, 'destroyOptionQuiz']);
+                Route::prefix('option-question')->group(function () {
+                    Route::post('/{id_option_quizezz}', [OptionQuizQuestionController::class, 'store']);
+                    Route::get('/', [OptionQuizQuestionController::class, 'index']);
+                    Route::get('/{id}', [OptionQuizQuestionController::class, 'showQuestionsByID']);
+                    Route::post('/updateData/{id}', [OptionQuizQuestionController::class, 'update']);
+                    Route::delete('/{id}', [OptionQuizQuestionController::class, 'destroy']);
+                });
             });
 
             Route::prefix('video-lessons')->group(function () {
                 Route::get('/', [VideoLessonController::class, 'index']);         
-                Route::post('/', [VideoLessonController::class, 'store']);        
+                // Route::post('/', [VideoLessonController::class, 'store']);  
+                Route::post('/{id_learning_modules}', [VideoLessonController::class, 'store']);       
                 Route::get('/{id}', [VideoLessonController::class, 'show']);      
-                Route::post('/{id}', [VideoLessonController::class, 'updateVideoLesson']); 
-                Route::post('/video-lesson-contents/{id}', [VideoLessonController::class, 'updateLessonContent']);   
+                Route::post('/updateData/{id}', [VideoLessonController::class, 'update']);    
                 Route::delete('/{id}', [VideoLessonController::class, 'destroy']); 
+                Route::prefix('content-lessons')->group(function (){
+                    Route::post('/updateData/{id}', [VideoLessonContentController::class, 'update']); 
+                    Route::delete('/{id}', [VideoLessonContentController::class, 'destroy']);
+                });
             });
 
             Route::prefix('flashcard-games')->group(function () {
                 Route::get('/', [FlashcardGameController::class, 'index']);
                 Route::get('/flashcard-cards/{id}', [FlashcardCardController::class, 'show']);
-                Route::post('/', [FlashcardGameController::class, 'store']);
-                Route::patch('/game/{id}', [FlashcardGameController::class, 'updateFlashcardGame']);
-                Route::patch('/card/{id}', [FlashcardGameController::class, 'updateFlashcardCard']);
+                // Route::post('/', [FlashcardGameController::class, 'store']);
+                Route::post('/{id_learning_modules}', [FlashcardGameController::class, 'store']);
+                Route::post('/game/{id}', [FlashcardGameController::class, 'updateFlashcardGame']);
                 Route::delete('/{id}', [FlashcardGameController::class, 'destroy']);
-                Route::delete('/card/{id}', [FlashcardGameController::class, 'destroyCard']);
+                Route::prefix('cards')->group(function (){
+                    Route::post('/{id}', [FlashcardGameController::class, 'updateFlashcardCard']);
+                    Route::delete('/{id}', [FlashcardGameController::class, 'destroyCard']);
+                });
             });
+        });
+
+        Route::prefix('quiz-score')->group(function () {
+            Route::get('/', [QuizScoreController::class, 'index']);
+            Route::post('/', [QuizScoreController::class, 'store']);
+            Route::get('/{id}', [QuizScoreController::class, 'show']);
+            Route::patch('/{id}', [QuizScoreController::class, 'update']);
+            Route::delete('/{id}', [QuizScoreController::class, 'destroy']);
+            Route::get('/leaderboard/post-test', [QuizScoreController::class, 'getPostTestScores']);
         });
 
         Route::prefix('quiz-score')->group(function () {
@@ -143,6 +179,14 @@ Route::prefix('v1')->group(function () {
     Route::get('/lesson-history/{id}', [UserLessonHistoryController::class, 'showLessonByID']);
     Route::get('/module-history/user/{id_users}', [UserModulesHistoryController::class, 'showModulesByID']);
     Route::get('/module-history/{userId}/{subjectId}', [UserModulesHistoryController::class, 'showModuleHistoryByUserAndSubject']);
+
+    Route::prefix('user-character')->group(function () {
+        Route::get('/', [UserCharacterController::class, 'index']);
+        Route::get('/{id}', [UserCharacterController::class, 'show']);
+        Route::post('/', [UserCharacterController::class, 'store']);
+        Route::post('/updateData/{id}', [UserCharacterController::class, 'update']);
+        Route::delete('/{id}', [UserCharacterController::class, 'destroy']);
+    });
 });
 
 //Set route untuk test 
