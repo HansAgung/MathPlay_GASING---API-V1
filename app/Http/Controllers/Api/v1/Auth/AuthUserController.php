@@ -27,57 +27,44 @@ class AuthUserController extends Controller
             'password'       => 'required|string|min:6|confirmed',
             'birth'          => 'required|date',
             'gender'         => 'required|in:male,female',
-            'character_img'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'user_desc'      => 'nullable|string',
+            'id_user_character' => 'required|integer|exists:user_character,id_user_character',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $characterImageUrl = null;
-
-        if ($request->hasFile('character_img')) {
-            $uploadedFileUrl = Cloudinary::upload($request->file('character_img')->getRealPath(), [
-                'folder' => 'character_images'
-            ])->getSecurePath();
-
-            $characterImageUrl = $uploadedFileUrl;
-        }
-
         $user = User::create([
-            'username'      => $request->username,
-            'fullname'      => $request->fullname,
-            'email'         => $request->email,
-            'password'      => Hash::make($request->password),
-            'birth'         => $request->birth,
-            'gender'        => $request->gender,
-            'character_img' => $characterImageUrl,
-            'user_desc'     => $request->user_desc ?? null,
-            'lives'         => 5,
-            'is_active'     => true,
+            'username'          => $request->username,
+            'fullname'          => $request->fullname,
+            'email'             => $request->email,
+            'password'          => Hash::make($request->password),
+            'birth'             => $request->birth,
+            'gender'            => $request->gender,
+            'id_user_character' => $request->id_user_character,
+            'lives'             => 5,
+            'lastPoints'        => 100,
+            'lastEnergy'        => 100,
+            'is_active'         => true,
         ]);
 
-        // ✅ Tambahan: isi otomatis user_lesson_history
         $subjects = LearningSubject::all();
-
         foreach ($subjects as $subject) {
             UserLessonHistory::create([
-                'id_users'              => $user->id_users,
-                'id_learning_subjects'  => $subject->id_learning_subjects,
-                'status'                => $subject->id_learning_subjects == 1 ? 'onProgress' : 'toDo',
-                'created_at'            => now(),
+                'id_users'             => $user->id_users,
+                'id_learning_subjects' => $subject->id_learning_subjects,
+                'status'               => $subject->id_learning_subjects == 1 ? 'onProgress' : 'toDo',
+                'created_at'           => now(),
             ]);
         }
 
         $modules = LearningModule::all();
-
         foreach ($modules as $module) {
             UserModuleHistory::create([
-                'id_users'             => $user->id_users,
-                'id_learning_modules'  => $module->id_learning_modules,
-                'status'               => $module->id_learning_modules == 1 ? 'onProgress' : 'toDo',
-                'created_at'           => now(),
+                'id_users'            => $user->id_users,
+                'id_learning_modules' => $module->id_learning_modules,
+                'status'              => $module->id_learning_modules == 1 ? 'onProgress' : 'toDo',
+                'created_at'          => now(),
             ]);
         }
 
@@ -89,6 +76,7 @@ class AuthUserController extends Controller
             'user'         => $user,
         ], 201);
     }
+
 
     public function login(Request $request)
     {
