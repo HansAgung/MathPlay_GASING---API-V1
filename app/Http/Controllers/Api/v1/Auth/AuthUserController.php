@@ -121,26 +121,43 @@ class AuthUserController extends Controller
 
     public function forgotPassword(Request $request)
     {
+        // Tahap verifikasi tanpa password
+        if (!$request->has('password')) {
+            $request->validate([
+                'email' => 'required|email',
+                'birth' => 'required|date',
+            ]);
+
+            $user = User::where('email', $request->email)
+                        ->where('birth', $request->birth)
+                        ->first();
+
+            if (!$user) {
+                return response()->json(['message' => 'Email atau tanggal lahir tidak cocok.'], 404);
+            }
+
+            return response()->json(['message' => 'Verifikasi berhasil.'], 200);
+        }
+
+        // Tahap ubah password
         $request->validate([
-            'email'                 => 'required|email',
-            'birth'                 => 'required|date',
-            'password'              => 'required|string|confirmed|min:6',
+            'email'    => 'required|email',
+            'birth'    => 'required|date',
+            'password' => 'required|string|confirmed|min:6',
         ]);
 
-        $user = User::where('email', $request->email)->where('birth', $request->birth)->first();
+        $user = User::where('email', $request->email)
+                    ->where('birth', $request->birth)
+                    ->first();
 
         if (!$user) {
-            return response()->json([
-                'message' => 'Email atau tanggal lahir tidak cocok.'
-            ], 404);
+            return response()->json(['message' => 'Email atau tanggal lahir tidak cocok.'], 404);
         }
 
         $user->password = Hash::make($request->password);
         $user->save();
 
-        return response()->json([
-            'message' => 'Password berhasil diperbarui.'
-        ], 200);
+        return response()->json(['message' => 'Password berhasil diperbarui.'], 200);
     }
 
     public function getUserById($id)

@@ -79,25 +79,53 @@ class AuthAdminController extends Controller
     }
 
     public function forgotPassword(Request $request)
-    {
+{
+    // Tahap verifikasi tanpa password
+    if (!$request->has('password')) {
         $request->validate([
-            'email'                 => 'required|email',
-            'address'               => 'required',
-            'password'              => 'required|confirmed',
+            'email'   => 'required|email',
+            'address' => 'required|string',
         ]);
 
-        $admin = Admin::where('email', $request->email)->where('address', $request->address)->first();
+        $admin = Admin::where('email', $request->email)
+                      ->where('address', $request->address)
+                      ->first();
 
         if (!$admin) {
-            return response()->json(['message' => 'Data tidak cocok'], 404);
+            return response()->json([
+                'message' => 'Email atau alamat tidak cocok.'
+            ], 404);
         }
 
-        $admin->update([
-            'password' => Hash::make($request->password),
-        ]);
-
-        return response()->json(['message' => 'Password berhasil direset.'], 200);
+        return response()->json([
+            'message' => 'Verifikasi berhasil.'
+        ], 200);
     }
+
+    // Tahap ubah password
+    $request->validate([
+        'email'    => 'required|email',
+        'address'  => 'required|string',
+        'password' => 'required|string|confirmed|min:6',
+    ]);
+
+    $admin = Admin::where('email', $request->email)
+                  ->where('address', $request->address)
+                  ->first();
+
+    if (!$admin) {
+        return response()->json([
+            'message' => 'Email atau alamat tidak cocok.'
+        ], 404);
+    }
+
+    $admin->password = Hash::make($request->password);
+    $admin->save();
+
+    return response()->json([
+        'message' => 'Password berhasil diperbarui.'
+    ], 200);
+}
 
     public function logout(Request $request)
     {
