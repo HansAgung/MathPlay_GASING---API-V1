@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\VideoLesson;
 use App\Models\VideoLessonContent;
 use Illuminate\Http\Request;
+use App\Models\UserUnitsHistory;
+use App\Models\LearningUnit;
+use App\Models\User;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -13,116 +16,123 @@ use Illuminate\Support\Facades\Log;
 class VideoLessonController extends Controller
 {
     public function store(Request $request, $id_learning_modules)
-    {
-        DB::beginTransaction();
-        
-        try {
-            $lessonValidated = $request->validate([
-                'title_lessons' => 'required|string|max:255',
-                'video_url_lessons' => 'nullable|string',
-                'description_contents' => 'required|string',
+{
+    DB::beginTransaction();
+
+    try {
+        // Validasi request utama
+        $lessonValidated = $request->validate([
+            'title_lessons'         => 'required|string|max:255',
+            'video_url_lessons'     => 'nullable|string',
+            'description_contents'  => 'required|string',
+        ]);
+
+        // Validasi konten (jika ada)
+        $contentValidated = [];
+        if ($request->has('contents') && is_array($request->contents)) {
+            $contentValidated = $request->validate([
+                'contents'                             => 'required|array|min:1',
+                'contents.*.title_material'            => 'required|string|max:255',
+                'contents.*.description_material'      => 'required|string',
+                'contents.*.video_url'                 => 'nullable|string',
+                'contents.*.material_img_support'      => 'sometimes|image|mimes:jpg,jpeg,png|max:2048',
             ]);
-
-            $contentValidated = [];
-            if ($request->has('contents') && is_array($request->contents)) {
-                $contentValidated = $request->validate([
-                    'contents' => 'required|array|min:1',
-                    'contents.*.title_material' => 'required|string|max:255',
-                    'contents.*.description_material' => 'required|string',
-                    'contents.*.video_url' => 'nullable|string',
-                    'contents.*.material_img_support' => 'sometimes|image|mimes:jpg,jpeg,png|max:2048',
-                ]);
-            }
-
-            $videoLessonData = [
-                'id_learning_units' => $id_learning_modules,
-                'title_lessons' => $lessonValidated['title_lessons'],
-                'description_contents' => $lessonValidated['description_contents'],
-            ];
-
-            if (!empty($lessonValidated['video_url_lessons'])) {
-                $videoLessonData['video_url_lessons'] = $lessonValidated['video_url_lessons'];
-            }
-
-            $videoLesson = VideoLesson::create($videoLessonData);
-
-            if (!$videoLesson || !$videoLesson->id_video_lessons) {
-                throw new \Exception('Gagal membuat video lesson');
-            }
-
-            Log::info('Video Lesson created with ID: ' . $videoLesson->id_video_lessons);
-
-            $createdContents = [];
-
-            if (!empty($contentValidated['contents'])) {
-                foreach ($contentValidated['contents'] as $index => $contentData) {
-                    if (empty($contentData['title_material']) || empty($contentData['description_material'])) {
-                        throw new \Exception("Content pada index {$index} tidak lengkap");
-                    }
-
-                    $dataToCreate = [
-                        'id_video_lessons' => $videoLesson->id_video_lessons,
-                        'title_material' => $contentData['title_material'],
-                        'description_material' => $contentData['description_material'],
-                        'video_url' => $contentData['video_url'] ?? null,
-                        'material_img_support' => null,
-                    ];
-
-                    $fileKey = "contents.{$index}.material_img_support";
-                    if ($request->hasFile($fileKey)) {
-                        try {
-                            $uploadedUrl = Cloudinary::upload(
-                                $request->file($fileKey)->getRealPath(),
-                                ['folder' => 'mathplay_gasing/video_lesson_materials']
-                            )->getSecurePath();
-                            
-                            $dataToCreate['material_img_support'] = $uploadedUrl;
-                        } catch (\Exception $uploadException) {
-                            Log::error('Cloudinary upload failed: ' . $uploadException->getMessage());
-                            throw new \Exception('Gagal mengupload gambar untuk content ' . ($index + 1));
-                        }
-                    }
-
-                    Log::info('Creating content with data:', $dataToCreate);
-
-                    $createdContent = VideoLessonContent::create($dataToCreate);
-
-                    if (!$createdContent) {
-                        throw new \Exception("Gagal membuat content pada index {$index}");
-                    }
-
-                    $createdContents[] = $createdContent;
-                }
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'message' => 'Video lesson dan konten berhasil ditambahkan.',
-                'data' => [
-                    'video_lesson' => $videoLesson->fresh(),
-                    'contents' => $createdContents,
-                    'total_contents' => count($createdContents)
-                ]
-            ], 201);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            DB::rollback();
-            Log::error('Validation error: ', $e->errors());
-            return response()->json([
-                'message' => 'Validasi gagal',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            DB::rollback();
-            Log::error('Error in store method: ' . $e->getMessage());
-            return response()->json([
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
-                'line' => $e->getLine(),
-                'file' => $e->getFile()
-            ], 500);
         }
+
+        // Hitung urutan unit
+        $currentCount = LearningUnit::where('id_learning_modules', $id_learning_modules)->count();
+        $nextOrder = $currentCount + 1;
+
+        // Buat unit
+        $unit = LearningUnit::create([
+            'id_learning_modules' => $id_learning_modules,
+            'unit_learning_order' => $nextOrder,
+        ]);
+
+        // Buat video lesson
+        $videoLesson = VideoLesson::create([
+            'id_learning_units'     => $unit->id_learning_units,
+            'title_lessons'         => $lessonValidated['title_lessons'],
+            'description_contents'  => $lessonValidated['description_contents'],
+            'type_assets'           => "2",
+            'video_url_lessons'     => $lessonValidated['video_url_lessons'] ?? null,
+        ]);
+
+        // Buat konten
+        $createdContents = [];
+        if (!empty($contentValidated['contents'])) {
+            foreach ($contentValidated['contents'] as $index => $contentData) {
+                $dataToCreate = [
+                    'id_video_lessons'       => $videoLesson->id_video_lessons,
+                    'title_material'         => $contentData['title_material'],
+                    'description_material'   => $contentData['description_material'],
+                    'video_url'              => $contentData['video_url'] ?? null,
+                    'material_img_support'   => null,
+                ];
+
+                $fileKey = "contents.{$index}.material_img_support";
+                if ($request->hasFile($fileKey)) {
+                    $uploadedUrl = Cloudinary::upload(
+                        $request->file($fileKey)->getRealPath(),
+                        ['folder' => 'mathplay_gasing/video_lesson_materials']
+                    )->getSecurePath();
+
+                    $dataToCreate['material_img_support'] = $uploadedUrl;
+                }
+
+                $createdContents[] = VideoLessonContent::create($dataToCreate);
+            }
+        }
+
+        // Tambahkan ke user_units_history dengan logika progres dinamis
+        $users = User::all();
+        foreach ($users as $user) {
+            $unitIds = LearningUnit::where('id_learning_modules', $id_learning_modules)->pluck('id_learning_units');
+
+            $completedCount = UserUnitsHistory::where('id_users', $user->id_users)
+                ->whereIn('id_learning_units', $unitIds)
+                ->where('status', 'complete')
+                ->count();
+
+            $status = ($completedCount === ($unitIds->count() - 1)) ? 'onProgress' : 'toDo';
+
+            UserUnitsHistory::create([
+                'id_users'          => $user->id_users,
+                'id_learning_units' => $unit->id_learning_units,
+                'status'            => $status,
+                'created_at'        => now(),
+                'updated_at'        => now(),
+            ]);
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'message' => 'Video lesson dan konten berhasil ditambahkan.',
+            'data' => [
+                'video_lesson'    => $videoLesson->fresh(),
+                'contents'        => $createdContents,
+                'total_contents'  => count($createdContents),
+            ]
+        ], 201);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        DB::rollBack();
+        return response()->json([
+            'message' => 'Validasi gagal',
+            'errors'  => $e->errors()
+        ], 422);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
+            'line'    => $e->getLine(),
+            'file'    => $e->getFile()
+        ], 500);
     }
+}
+
 
     public function update(Request $request, $id)
 {

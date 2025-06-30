@@ -10,12 +10,16 @@ use App\Models\OptionQuiz;
 
 class QuizScoreController extends Controller
 {
-    public function index()
+   public function index()
     {
-        $scores = QuizScore::all();
+        $scores = QuizScore::select('id_users')
+            ->selectRaw('SUM(score) as total_score')
+            ->groupBy('id_users')
+            ->get();
+
         return response()->json([
-            'message' => 'Quiz scores retrieved successfully',
-            'data' => $scores,
+            'message' => 'Total quiz scores per user retrieved successfully',
+            'data'    => $scores,
         ]);
     }
 
@@ -24,15 +28,15 @@ class QuizScoreController extends Controller
         $validated = $request->validate([
             'id_users'   => 'required|exists:users,id_users',
             'quiz_id'   => 'required|integer',
-            'quiz_type' => 'required|in:input,option',
+            'type_assets' => 'required|in:0,1',
             'score'     => 'required|integer|min:0|max:100',
         ]);
 
-        if ($validated['quiz_type'] === 'input') {
+        if ($validated['type_assets'] === '0') {
             if (!InputQuiz::where('id_input_quizezz', $validated['quiz_id'])->exists()) {
                 return response()->json(['message' => 'Quiz ID not found in input_quizzes'], 404);
             }
-        } elseif ($validated['quiz_type'] === 'option') {
+        } elseif ($validated['type_assets'] === '1') {
             if (!OptionQuiz::where('id_option_quizezz', $validated['quiz_id'])->exists()) {
                 return response()->json(['message' => 'Quiz ID not found in option_quizzes'], 404);
             }

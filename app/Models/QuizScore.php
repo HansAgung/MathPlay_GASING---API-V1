@@ -16,7 +16,7 @@ class QuizScore extends Model
     protected $fillable = [
         'id_users',
         'quiz_id',
-        'quiz_type',
+        'type_assets',
         'score',
     ];
 

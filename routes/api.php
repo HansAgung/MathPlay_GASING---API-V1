@@ -40,6 +40,7 @@ Route::prefix('v1')->group(function () {
         Route::post('login', [AuthUserController::class, 'login']);
         Route::get('getUserbyID/{id}', [AuthUserController::class, 'getUserById']);
         Route::post('forgot-password', [AuthUserController::class, 'forgotPassword']);
+        Route::post('update-profile/{id}', [AuthUserController::class, 'updateProfile']);
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('logout', [AuthUserController::class, 'logout']);
@@ -97,6 +98,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/units/{id}', [LearningUnitController::class, 'show']);
             // Route::get('/{id_user}/{id_modules}', [UserUnitsHistoryController::class, 'showUnitbyUserAndModule']);
             Route::get('/units/{id_users}/{id_learning_modules}', [LearningUnitController::class, 'showUserUnitsByModules']);
+            Route::post('/update-progress/{id_users}/{id_learning_modules}', [UserUnitsHistoryController::class, 'updateProgress']);
         });
 
         Route::prefix('asset-modules')->group(function () {

@@ -11,7 +11,8 @@ class VideoLesson extends Model
         'id_learning_units', 
         'title_lessons', 
         'video_url_lessons', 
-        'description_contents'
+        'description_contents',
+        'type_assets'
     ];
 
     public function unit()

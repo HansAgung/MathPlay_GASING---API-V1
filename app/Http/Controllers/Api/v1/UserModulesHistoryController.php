@@ -28,20 +28,39 @@ class UserModulesHistoryController extends Controller
     }
 
     public function showModuleHistoryByUserAndSubject($userId, $subjectId)
-    {
-        $modules = UserModuleHistory::with(['learningModule' => function ($query) use ($subjectId) {
-            $query->where('id_learning_subjects', $subjectId);
-        }])
-        ->where('id_users', $userId)
-        ->get()
-        ->filter(function ($history) {
-            return $history->learningModule !== null;
-        })
-        ->values();
+{
+    $modules = UserModuleHistory::with(['learningModule' => function ($query) use ($subjectId) {
+        $query->where('id_learning_subjects', $subjectId);
+    }])
+    ->where('id_users', $userId)
+    ->get()
+    ->filter(function ($history) {
+        return $history->learningModule !== null;
+    });
 
-        return response()->json([
-            'message' => 'Data module berdasarkan user dan subject berhasil diambil.',
-            'data' => $modules
-        ]);
+    foreach ($modules as $moduleHistory) {
+        $module = $moduleHistory->learningModule;
+        if (!$module) continue;
+
+        $unitIds = \App\Models\LearningUnit::where('id_learning_modules', $module->id_learning_modules)
+                    ->pluck('id_learning_units');
+
+        $completedUnits = \App\Models\UserUnitsHistory::where('id_users', $userId)
+            ->whereIn('id_learning_units', $unitIds)
+            ->where('status', 'complete')
+            ->count();
+
+        if ($completedUnits < count($unitIds) && $moduleHistory->status === 'complete') {
+            // Modul sudah tidak lagi selesai karena ada unit baru → ubah status
+            $moduleHistory->status = 'onProgress';
+            $moduleHistory->save();
+        }
     }
+
+    return response()->json([
+        'message' => 'Data module berdasarkan user dan subject berhasil diambil.',
+        'data' => $modules->values()
+    ]);
+}
+
 }

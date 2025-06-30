@@ -16,69 +16,83 @@ class InputQuizController extends Controller
     }
 
     public function storeInputQuiz(Request $request, $id_learning_modules)
-    {
-        try {
-            $request->merge(['id_learning_modules' => $id_learning_modules]);
+{
+    try {
+        $request->merge(['id_learning_modules' => $id_learning_modules]);
 
-            $validated = $request->validate([
-                'id_learning_modules' => 'required|integer|exists:learning_modules,id_learning_modules',
-                'title_question'      => 'required|string|max:255',
-                'set_time'            => 'required|integer|min:1',
-                'type_assets'         => 'nullable|string|max:255',
-                'energy_cost'         => 'required|integer|min:0',
-                'test_type'           => 'required|string|max:255',
-                'id_badges'           => 'nullable|integer|exists:badges,id_badges',
-                'reward'              => 'nullable|string',
-            ]);
+        $validated = $request->validate([
+            'id_learning_modules' => 'required|integer|exists:learning_modules,id_learning_modules',
+            'title_question'      => 'required|string|max:255',
+            'set_time'            => 'required|integer|min:1',
+            'energy_cost'         => 'required|integer|min:0',
+            'test_type'           => 'required|string|max:255',
+            'id_badges'           => 'nullable|integer|exists:badges,id_badges',
+            'reward'              => 'nullable|string',
+        ]);
 
-            $currentCount = LearningUnit::where('id_learning_modules', $validated['id_learning_modules'])->count();
-            $nextOrder = $currentCount + 1;
+        $currentCount = LearningUnit::where('id_learning_modules', $validated['id_learning_modules'])->count();
+        $nextOrder = $currentCount + 1;
 
-            $unit = LearningUnit::create([
-                'id_learning_modules' => $validated['id_learning_modules'],
-                'unit_learning_order' => $nextOrder,
-            ]);
+        // Tambah unit
+        $unit = LearningUnit::create([
+            'id_learning_modules' => $validated['id_learning_modules'],
+            'unit_learning_order' => $nextOrder,
+        ]);
 
-            $inputQuiz = InputQuiz::create([
+        // Tambah input quiz
+        $inputQuiz = InputQuiz::create([
+            'id_learning_units' => $unit->id_learning_units,
+            'title_question'    => $validated['title_question'],
+            'set_time'          => $validated['set_time'],
+            'type_assets'       => '0',
+            'energy_cost'       => $validated['energy_cost'],
+            'test_type'         => $validated['test_type'],
+            'id_badges'         => $validated['id_badges'] ?? null,
+            'reward'            => $validated['reward'] ?? null,
+        ]);
+
+        // Inisialisasi progres semua user
+        $users = User::all();
+        foreach ($users as $user) {
+            // Ambil semua unit dalam modul ini
+            $unitIds = LearningUnit::where('id_learning_modules', $validated['id_learning_modules'])->pluck('id_learning_units');
+
+            // Hitung unit yang sudah complete untuk user ini
+            $completedCount = UserUnitsHistory::where('id_users', $user->id_users)
+                ->whereIn('id_learning_units', $unitIds)
+                ->where('status', 'complete')
+                ->count();
+
+            $status = ($completedCount === ($unitIds->count() - 1)) ? 'onProgress' : 'toDo';
+
+            UserUnitsHistory::create([
+                'id_users'          => $user->id_users,
                 'id_learning_units' => $unit->id_learning_units,
-                'title_question'    => $validated['title_question'],
-                'set_time'          => $validated['set_time'],
-                'type_assets'       => $validated['type_assets'] ?? null,
-                'energy_cost'       => $validated['energy_cost'],
-                'test_type'         => $validated['test_type'],
-                'id_badges'         => $validated['id_badges'] ?? null,
-                'reward'            => $validated['reward'] ?? null,
+                'status'            => $status,
+                'created_at'        => now(),
+                'updated_at'        => now(),
             ]);
-
-            $users = User::all();
-            foreach ($users as $user) {
-                UserUnitsHistory::create([
-                    'id_users'          => $user->id_users,
-                    'id_learning_units' => $unit->id_learning_units,
-                    'status'            => $nextOrder === 1 ? 'onProgress' : 'toDo',
-                    'created_at'        => now(),
-                    'updated_at'        => now(),
-                ]);
-            }
-
-            return response()->json([
-                'message' => 'Input quiz dan unit berhasil ditambahkan.',
-                'data'    => $inputQuiz,
-            ], 201);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validasi gagal.',
-                'errors'  => $e->errors()
-            ], 422);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Terjadi kesalahan saat menyimpan data.',
-                'error'   => $e->getMessage()
-            ], 500);
         }
+
+        return response()->json([
+            'message' => 'Input quiz dan unit berhasil ditambahkan.',
+            'data'    => $inputQuiz,
+        ], 201);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'message' => 'Validasi gagal.',
+            'errors'  => $e->errors()
+        ], 422);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Terjadi kesalahan saat menyimpan data.',
+            'error'   => $e->getMessage()
+        ], 500);
     }
+}
+
 
     public function updateInputQuiz(Request $request, $id)
     {

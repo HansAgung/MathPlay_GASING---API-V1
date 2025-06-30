@@ -9,7 +9,7 @@ class FlashcardGame extends Model
     protected $primaryKey = 'id_flashcard_game';
     protected $table = 'flashcard_minigame';
     protected $fillable = [
-        'id_learning_units', 'patternCount', 'matchCount', 'cards', 'set_time'
+        'id_learning_units', 'patternCount', 'matchCount', 'cards', 'set_time','type_assets'
     ];
 
     public function unit()

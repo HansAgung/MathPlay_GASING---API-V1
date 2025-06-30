@@ -39,7 +39,7 @@ class LearningUnitController extends Controller
                     'id_learning_units'   => $unit->id_learning_units,
                     'unit_learning_order' => $unit->unit_learning_order,
                     'status'              => $history ? $history->status : 'not_assigned',
-                    'input_quizzes'       => $unit->inputQuizzes,       // <- pakai 's'
+                    'input_quizzes'       => $unit->inputQuizzes,      
                     'option_quizzes'      => $unit->optionQuizzes,
                     'flashcard_games'     => $unit->flashcardGames,
                     'video_lessons'       => $unit->videoLessons,

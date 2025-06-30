@@ -174,4 +174,46 @@ class AuthUserController extends Controller
             'user' => $user
         ], 200);
     }
+
+    public function updateProfile(Request $request, $id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json(['message' => 'User tidak ditemukan.'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'username'          => 'sometimes|string|max:255|unique:users,username,' . $id . ',id_users',
+            'fullname'          => 'sometimes|string|max:255',
+            'email'             => 'sometimes|email|max:255|unique:users,email,' . $id . ',id_users',
+            'password'          => 'sometimes|string|min:6|confirmed',
+            'birth'             => 'sometimes|date',
+            'gender'            => 'sometimes|in:male,female',
+            'id_user_character' => 'sometimes|integer|exists:user_character,id_user_character',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $updatableFields = ['username', 'fullname', 'email', 'birth', 'gender', 'id_user_character'];
+
+        foreach ($updatableFields as $field) {
+            if ($request->has($field)) {
+                $user->$field = $request->$field;
+            }
+        }
+
+        if ($request->has('password')) {
+            $user->password = Hash::make($request->password);
+        }
+
+        $user->save();
+
+        return response()->json([
+            'message' => 'Profil berhasil diperbarui.',
+            'user' => $user,
+        ], 200);
+    }
 }

@@ -53,6 +53,7 @@ class FlashcardGameController extends Controller
                 'matchCount' => $validated['matchCount'],
                 'set_time' => $validated['set_time'],
                 'cards' => count($validated['cards']),
+                'type_assets' => "3",
             ]);
 
             // Simpan setiap kartu setelah upload ke Cloudinary
@@ -76,7 +77,6 @@ class FlashcardGameController extends Controller
                 }
             }
 
-            // Tambahkan ke user_units_history
             $users = User::all();
             foreach ($users as $user) {
                 UserUnitsHistory::create([

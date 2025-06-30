@@ -31,4 +31,9 @@ class LearningUnit extends Model
     {
         return $this->hasMany(FlashcardGame::class, 'id_learning_units', 'id_learning_units');
     }
+
+    public function module()
+{
+    return $this->belongsTo(LearningModule::class, 'id_learning_modules');
+}
 }
