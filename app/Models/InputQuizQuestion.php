@@ -14,13 +14,14 @@ class InputQuizQuestion extends Model
 
     protected $fillable = [
         'id_input_quizezz',
-        'question_quiz',
+        'type_question',
         'description_question',
-        'option_1',
-        'option_2',
-        'option_3',
-        'option_4',
+        'input_guideline',
         'question_answer',
+    ];
+
+    protected $casts = [
+        'input_guideline' => 'array', 
     ];
 
     public function inputQuiz()

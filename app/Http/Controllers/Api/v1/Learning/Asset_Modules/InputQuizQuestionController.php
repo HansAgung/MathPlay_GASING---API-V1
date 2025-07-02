@@ -65,88 +65,162 @@ class InputQuizQuestionController extends Controller
     }
 
     public function store(Request $request, $id_input_quizezz)
-    {
-        try {
-            $request->merge(['id_input_quizezz' => $id_input_quizezz]);
-            
-            // Validasi dasar
-            $validated = $request->validate([
-                'id_input_quizezz'       => 'required|exists:input_quizzes,id_input_quizezz',
-                'description_question'   => 'nullable|string',
-                'question_answer'        => 'required|string|max:255',
+{
+    try {
+        // Validasi semua input
+        $validated = $request->validate([
+            'input_guideline.option_img' => 'required|array|size:4',
+            'input_guideline.option_img.*.img' => 'required|file|image|max:2048',
+            'input_guideline.option_img.*.value' => 'required|integer',
+
+            'questions' => 'required|array|min:1',
+            'questions.*.type' => 'required|string|in:image,text',
+            'questions.*.answer' => 'required|integer',
+            'questions.*.content' => 'required_if:questions.*.type,text|string|nullable',
+            'questions.*.question' => 'required_if:questions.*.type,image|file|nullable',
+        ]);
+
+        // ✅ Upload gambar petunjuk (option_img)
+        $guidelineImgs = [];
+        foreach ($request->file('input_guideline.option_img') as $index => $imgItem) {
+            // Ambil file dan value-nya
+            $file = $imgItem['img'];
+            $value = $request->input("input_guideline.option_img.$index.value");
+
+            // Upload ke Cloudinary
+            $upload = Cloudinary::upload($file->getRealPath(), [
+                'folder' => 'mathplay_gasing/options'
             ]);
 
-            // Validasi dinamis untuk question_quiz
-            $this->validateFlexibleField($request, 'question_quiz', true); // required
-            
-            // Validasi dinamis untuk options
-            $this->validateFlexibleField($request, 'option_1', true); // required
-            $this->validateFlexibleField($request, 'option_2', true); // required
-            $this->validateFlexibleField($request, 'option_3', true); // required
-            $this->validateFlexibleField($request, 'option_4', true); // required
-
-            // Proses data
-            $data = $this->handleFlexibleInputs($request, $validated);
-            
-            $question = InputQuizQuestion::create($data);
-            
-            return response()->json([
-                'message' => 'Soal berhasil ditambahkan.',
-                'data' => $question
-            ], 201);
-            
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validasi gagal',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-            ], 500);
+            $guidelineImgs[] = [
+                'img' => $upload->getSecurePath(),
+                'value' => $value
+            ];
         }
-    }
 
-    // Alternatif method untuk update juga
-    public function update(Request $request, $id)
-    {
-        try {
-            $question = InputQuizQuestion::findOrFail($id);
-            
-            // Validasi dasar
-            $validated = $request->validate([
-                'description_question'   => 'nullable|string',
-                'question_answer'        => 'nullable|string|max:255',
-            ]);
+        // ✅ Simpan setiap pertanyaan
+        $createdQuestions = [];
+        foreach ($request->input('questions') as $index => $variant) {
+            $type = $variant['type'];
+            $answer = $variant['answer'];
 
-            // Validasi dinamis untuk field opsional saat update
-            $this->validateFlexibleField($request, 'question_quiz', false);
-            $this->validateFlexibleField($request, 'option_1', false);
-            $this->validateFlexibleField($request, 'option_2', false);
-            $this->validateFlexibleField($request, 'option_3', false);
-            $this->validateFlexibleField($request, 'option_4', false);
+            $desc = null;
+            if ($type === 'text') {
+                $desc = $variant['content'];
+            } elseif ($type === 'image' && $request->hasFile("questions.$index.question")) {
+                $file = $request->file("questions.$index.question");
 
-            // Proses data
-            $data = $this->handleFlexibleInputs($request, $validated);
-            
-            $question->update($data);
-            
-            return response()->json([
-                'message' => 'Soal berhasil diperbarui.',
-                'data' => $question->fresh()
-            ], 200);
-            
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validasi gagal',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-            ], 500);
+                // Upload soal tipe image
+                $upload = Cloudinary::upload($file->getRealPath(), [
+                    'folder' => 'mathplay_gasing/quiz_questions'
+                ]);
+                $desc = $upload->getSecurePath();
+            }
+
+            $data = [
+                'id_input_quizezz' => $id_input_quizezz,
+                'type_question' => $type,
+                'question_answer' => $answer,
+                'description_question' => $desc,
+                'input_guideline' => json_encode($guidelineImgs),
+            ];
+
+            $createdQuestions[] = InputQuizQuestion::create($data);
         }
+
+        return response()->json([
+            'message' => 'Soal berhasil ditambahkan.',
+            'id_input_quizezz' => $id_input_quizezz,
+            'total_questions' => count($createdQuestions),
+            'data' => $createdQuestions
+        ], 201);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'message' => 'Validasi gagal',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+        ], 500);
     }
+}
+
+public function update(Request $request, $id)
+{
+    try {
+        $question = InputQuizQuestion::findOrFail($id);
+
+        // Validasi input
+        $validated = $request->validate([
+            'type_question' => 'nullable|in:text,image',
+            'description_question' => 'nullable|string',
+            'question_answer' => 'nullable|string|max:255',
+
+            'input_guideline.option_img' => 'nullable|array|size:4',
+            'input_guideline.option_img.*.img' => 'required|file|image|max:2048',
+            'input_guideline.option_img.*.value' => 'required|integer',
+        ]);
+
+        $data = [];
+
+        // Jika jenis soal diubah
+        if ($request->has('type_question')) {
+            $data['type_question'] = $request->input('type_question');
+        }
+
+        // Jika isi soal diubah
+        if ($request->has('description_question')) {
+            $data['description_question'] = $request->input('description_question');
+        }
+
+        // Jika jawaban benar diubah
+        if ($request->has('question_answer')) {
+            $data['question_answer'] = $request->input('question_answer');
+        }
+
+        // Jika ingin mengganti semua gambar input_guideline
+        if ($request->hasFile('input_guideline.option_img')) {
+            $guidelineImgs = [];
+            foreach ($request->file('input_guideline.option_img') as $index => $imgItem) {
+                $file = $imgItem['img'] ?? null;
+                $value = $request->input("input_guideline.option_img.$index.value");
+
+                if ($file) {
+                    $upload = Cloudinary::upload($file->getRealPath(), [
+                        'folder' => 'mathplay_gasing/options'
+                    ]);
+
+                    $guidelineImgs[] = [
+                        'img' => $upload->getSecurePath(),
+                        'value' => $value
+                    ];
+                }
+            }
+
+            $data['input_guideline'] = json_encode($guidelineImgs);
+        }
+
+        // Proses update
+        $question->update($data);
+
+        return response()->json([
+            'message' => 'Soal berhasil diperbarui.',
+            'data' => $question->fresh()
+        ], 200);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'message' => 'Validasi gagal',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+        ], 500);
+    }
+}
 
     public function destroy($id)
     {
